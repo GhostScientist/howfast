@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>How fast am I going?</title>
+</head>
+<body>
+    <h1>Speedometer</h1>
+    <p id="speed">Speed: 0 km/h</p>
+
+    <script>
+        let previousCoords = null;
+        let previousTime = null;
+
+        function calculateSpeed(lat1, lon1, lat2, lon2, time1, time2) {
+            const earthRadius = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+
+            // Convert to radians
+            lat1 = lat1 * Math.PI / 180;
+            lat2 = lat2 * Math.PI / 180;
+
+            // Apply Haversine formula to calculate the distance
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const distance = earthRadius * c;
+
+            // Calculate the difference in time (in hours)
+            const time = (time2 - time1) / (1000 * 60 * 60);
+
+            // Calculate the speed
+            const speed = distance / time;
+
+            return speed;
+        }
+
+        function success(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            if (previousCoords) {
+                const speed = calculateSpeed(previousCoords.latitude, previousCoords.longitude, lat, lon, previousTime, Date.now());
+                document.getElementById('speed').innerText = 'Speed: ' + speed.toFixed(2) + ' km/h';
+            }
+
+            previousCoords = { latitude: lat, longitude: lon };
+            previousTime = Date.now();
+        }
+
+        function error(err) {
+            console.warn(`ERROR(${err.code}): ${err.message}`);
+        }
+
+        const options = {
+            enableHighAccuracy: true,
+            maximumAge: 0
+        };
+
+        // Start watching the user's position
+        navigator.geolocation.watchPosition(success, error, options);
+    </script>
+</body>
+</html>
