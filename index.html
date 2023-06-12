@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Online speedometer based on GPS/current location">
     <title>Tachimetro</title>
     <style>
         body {
@@ -57,12 +59,19 @@
             cursor: default;
         }
 
+        button#startTracking {
+            width: 300px;
+            display: inline-block
+        }
+
     </style>
 </head>
 <body>
     <h1>Tachimetro</h1>
+    
     <div id="content">
         <p id="speed">Please allow Current Location access to determine speed.</p>
+        <button id="startTracking" onclick="startTracking()">Start Tracking</button>
         <div id="btnContainer">
             <button id="mphBtn" onclick="switchToMph()" disabled>mph</button>
             <button id="kmhBtn" onclick="switchToKmh()">km/h</button>
@@ -81,6 +90,7 @@
                 document.getElementById('speed').style.fontSize = '10vw';
                 document.getElementById('mphBtn').style.display = 'inline-block';
                 document.getElementById('kmhBtn').style.display = 'inline-block';
+                document.getElementById('startTracking').style.display = 'none';
             }
             currentSpeed = position.coords.speed;
             updateSpeedDisplay();
@@ -100,6 +110,15 @@
             updateSpeedDisplay();
         }
 
+        function startTracking() {
+            const geolocationOptions = {
+                enableHighAccuracy: true,
+                maximumAge: 0
+            };
+
+            navigator.geolocation.watchPosition(processNewPosition, handleGeolocationError, geolocationOptions);
+        }
+
         function updateSpeedDisplay() {
             let convertedSpeed;
             if (isMph) {
@@ -115,12 +134,7 @@
             console.warn(`ERROR(${err.code}): ${err.message}`);
         }
 
-        const geolocationOptions = {
-            enableHighAccuracy: true,
-            maximumAge: 0
-        };
-
-        navigator.geolocation.watchPosition(processNewPosition, handleGeolocationError, geolocationOptions);
+        
     </script>
 </body>
 </html>
