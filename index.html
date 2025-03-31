@@ -6,7 +6,7 @@
     <title>Tachimetro</title>
     <style>
         body {
-            background-color: #415E40;
+            background-color: #000;
             color: #fff;
             font-family: 'Arial', sans-serif;
             font-weight: bold;
@@ -40,12 +40,12 @@
         }
 
         button {
-            background-color: #fff;;
+            background-color: #000;
             border: none;
             padding-left: 10px;
             padding-right: 10px;
             height: auto;
-            color: #000;
+            color: #fff;
             padding: 10px 20px;
             text-align: center;
             text-decoration: none;
@@ -71,6 +71,7 @@
     
     <div id="content">
         <p id="speed">Please allow Current Location access to determine speed.</p>
+        <p id="topSpeed">Top Speed: 0 mph</p>
         <button id="startTracking" onclick="startTracking()">Start Tracking</button>
         <div id="btnContainer">
             <button id="mphBtn" onclick="switchToMph()" disabled>mph</button>
@@ -81,6 +82,7 @@
     <script>
         let isMph = true;
         let currentSpeed = 0;
+        let topSpeed = 0;
 
         let grantedLocationAccess = false;
 
@@ -93,6 +95,9 @@
                 document.getElementById('startTracking').style.display = 'none';
             }
             currentSpeed = position.coords.speed;
+            if (currentSpeed > topSpeed) {
+                topSpeed = currentSpeed;
+            }
             updateSpeedDisplay();
         }
 
@@ -121,12 +126,17 @@
 
         function updateSpeedDisplay() {
             let convertedSpeed;
+            let convertedTopSpeed;
             if (isMph) {
                 convertedSpeed = currentSpeed * 2.23694;
+                convertedTopSpeed = topSpeed * 2.23694;
                 document.getElementById('speed').innerText = convertedSpeed.toFixed(2) + ' mph';
+                document.getElementById('topSpeed').innerText = 'Top Speed: ' + convertedTopSpeed.toFixed(2) + ' mph';
             } else {
                 convertedSpeed = currentSpeed * 3.6;
+                convertedTopSpeed = topSpeed * 3.6;
                 document.getElementById('speed').innerText = convertedSpeed.toFixed(2) + ' km/h';
+                document.getElementById('topSpeed').innerText = 'Top Speed: ' + convertedTopSpeed.toFixed(2) + ' km/h';
             }
         }
 
