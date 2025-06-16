@@ -1,0 +1,125 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+body {
+    background-color: #f4f7f6; /* Lighter background */
+    color: #333; /* Darker text for contrast */
+    font-family: 'Roboto', sans-serif; /* Modern font */
+    min-height: 100vh; /* Use min-height for flexibility */
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* Center content vertically */
+    padding: 20px; /* Add some padding */
+    box-sizing: border-box; /* Include padding in width/height calculations */
+}
+
+h1 {
+    color: #2c3e50; /* Dark blue for heading */
+    margin-bottom: 40px; /* Space below heading */
+    font-size: 2.5em; /* Responsive font size */
+}
+
+#content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 600px; /* Max width for content area */
+    text-align: center; /* Center text within content */
+}
+
+#speed { /* Renamed from 'p' to be more specific, assuming this is the ID of the speed display */
+    font-size: 2em; /* Default font size */
+    color: #2c3e50; /* Consistent text color */
+    margin-bottom: 30px; /* Space below speed display */
+    font-weight: 700; /* Bolder speed reading */
+}
+
+#btnContainer {
+    display: flex;
+    justify-content: center; /* Center buttons */
+    gap: 20px; /* Space between buttons */
+    width: 100%; /* Full width to allow centering */
+    margin-top: 20px; /* Space above button container */
+}
+
+button {
+    background-color: #3498db; /* Primary button color (blue) */
+    border: none;
+    border-radius: 8px; /* Rounded corners */
+    color: #fff;
+    padding: 12px 25px; /* Adjusted padding */
+    text-align: center;
+    text-decoration: none;
+    display: inline-block; /* Ensure it's an inline-block for proper display */
+    font-size: 1em; /* Relative font size */
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth transitions */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+button:hover:not(:disabled) {
+    background-color: #2980b9; /* Darker blue on hover */
+    transform: translateY(-2px); /* Slight lift on hover */
+}
+
+button:disabled {
+    background-color: #bdc3c7; /* Lighter grey for disabled */
+    color: #7f8c8d; /* Muted text color for disabled */
+    cursor: not-allowed;
+    box-shadow: none; /* No shadow for disabled buttons */
+}
+
+button#startTracking {
+    background-color: #2ecc71; /* Green for start button */
+    /* display is handled by JS, so no need to repeat 'display: inline-block' here if it's always shown initially or JS handles it */
+}
+
+button#startTracking:hover:not(:disabled) {
+    background-color: #27ae60; /* Darker green on hover */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2em;
+    }
+
+    #speed {
+        font-size: 1.8em; /* Adjusted for view on smaller screens */
+        /* The font-size: 10vw from JS will override this when location access is granted.
+           This style here is for the initial state or if JS controlled font-size is removed. */
+    }
+
+    button {
+        padding: 10px 20px;
+        font-size: 0.9em;
+    }
+
+    #btnContainer {
+        flex-direction: column; /* Stack buttons vertically on small screens */
+        gap: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    h1 {
+        font-size: 1.8em;
+    }
+
+    #speed {
+        font-size: 1.5em; /* Further adjust for very small screens */
+    }
+
+    button {
+        width: 100%; /* Make buttons full width */
+        padding: 12px; /* Adjust padding for full width */
+        font-size: 1em; /* Ensure text is readable */
+    }
+
+    #btnContainer {
+        gap: 10px; /* Reduce gap for stacked buttons */
+    }
+}
