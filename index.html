@@ -1,26 +1,168 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"> <!-- Added charset for best practice -->
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Online GPS speedometer application that displays your current speed in mph or km/h."> <!-- Slightly more descriptive -->
-    <title>GPS Speedometer</title> <!-- More descriptive title -->
+    <meta name="description" content="Advanced GPS speedometer with real-time graphs, metrics, recording, and CSV export capabilities.">
+    <title>GPS Speedometer Pro</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
-    <main>
-        <h1>GPS Speedometer</h1>
+    <header>
+        <h1>
+            <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+            </svg>
+            Speedometer Pro
+        </h1>
+        <button id="settingsBtn" type="button" class="icon-btn" aria-label="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v6m0 6v10M1 12h6m6 0h10"/>
+            </svg>
+        </button>
+    </header>
 
-        <div id="content">
-            <p id="speed" aria-live="polite">Please allow Current Location access to determine speed.</p>
-            <button id="startTracking" type="button">Start Tracking</button> <!-- Added type="button" for clarity -->
-            <div id="btnContainer">
-                <!-- aria-pressed will be managed by JavaScript -->
-                <button id="mphBtn" type="button" aria-pressed="true" disabled>mph</button>
-                <button id="kmhBtn" type="button" aria-pressed="false">km/h</button>
+    <main>
+        <!-- Speed Display Section -->
+        <section id="speedSection">
+            <div id="speedDisplay">
+                <div id="speedValue" aria-live="polite">0.00</div>
+                <div id="speedUnit">mph</div>
+            </div>
+            <button id="startTracking" type="button" class="primary-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                Start Tracking
+            </button>
+            <div id="unitToggle" class="hidden">
+                <button id="mphBtn" type="button" class="unit-btn active" aria-pressed="true">mph</button>
+                <button id="kmhBtn" type="button" class="unit-btn" aria-pressed="false">km/h</button>
+            </div>
+        </section>
+
+        <!-- Metrics Section -->
+        <section id="metricsSection" class="hidden">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Current</div>
+                    <div class="metric-value" id="currentSpeedMetric">0.00</div>
+                    <div class="metric-unit" id="metricUnit1">mph</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Average</div>
+                    <div class="metric-value" id="avgSpeed">0.00</div>
+                    <div class="metric-unit" id="metricUnit2">mph</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Max</div>
+                    <div class="metric-value" id="maxSpeed">0.00</div>
+                    <div class="metric-unit" id="metricUnit3">mph</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Distance</div>
+                    <div class="metric-value" id="distance">0.00</div>
+                    <div class="metric-unit" id="metricUnit4">mi</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Chart Section -->
+        <section id="chartSection" class="hidden">
+            <div class="section-header">
+                <h2>Speed History</h2>
+                <div class="recording-controls">
+                    <button id="recordBtn" type="button" class="secondary-btn">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="12" cy="12" r="8"/>
+                        </svg>
+                        Record
+                    </button>
+                    <button id="stopRecordBtn" type="button" class="secondary-btn hidden">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="6" y="6" width="12" height="12"/>
+                        </svg>
+                        Stop
+                    </button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="speedChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Recordings Section -->
+        <section id="recordingsSection" class="hidden">
+            <div class="section-header">
+                <h2>Saved Recordings</h2>
+                <button id="clearAllBtn" type="button" class="text-btn">Clear All</button>
+            </div>
+            <div id="recordingsList" class="recordings-list">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    <p>No recordings yet</p>
+                    <small>Start recording to save your speed data</small>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button id="closeSettings" type="button" class="close-btn" aria-label="Close">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label for="updateInterval">Update Interval (ms)</label>
+                    <input type="number" id="updateInterval" min="100" max="5000" step="100" value="1000">
+                    <small>How often to update speed (100-5000ms)</small>
+                </div>
+                <div class="setting-group">
+                    <label for="chartDuration">Chart Duration (seconds)</label>
+                    <input type="number" id="chartDuration" min="10" max="300" step="10" value="60">
+                    <small>How much history to show on the chart</small>
+                </div>
+                <div class="setting-group">
+                    <label for="highAccuracy">
+                        <input type="checkbox" id="highAccuracy" checked>
+                        High Accuracy GPS
+                    </label>
+                    <small>Uses more battery but provides better accuracy</small>
+                </div>
+                <div class="setting-group">
+                    <label for="autoSave">
+                        <input type="checkbox" id="autoSave" checked>
+                        Auto-save Recordings
+                    </label>
+                    <small>Automatically save recordings when stopped</small>
+                </div>
+                <div class="setting-group">
+                    <label for="darkMode">
+                        <input type="checkbox" id="darkMode">
+                        Dark Mode
+                    </label>
+                    <small>Toggle dark theme</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="resetSettings" type="button" class="text-btn">Reset to Default</button>
+                <button id="saveSettings" type="button" class="primary-btn">Save</button>
             </div>
         </div>
-    </main>
+    </div>
 
     <script src="script.js"></script>
 </body>
