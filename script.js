@@ -552,6 +552,7 @@ function clearAllRecordings() {
 
 // --- Unit Conversion ---
 function switchToMph() {
+    const previousIsMph = isMph;
     isMph = true;
     mphBtn.classList.add('active');
     kmhBtn.classList.remove('active');
@@ -559,10 +560,11 @@ function switchToMph() {
     kmhBtn.setAttribute('aria-pressed', 'false');
     
     // Recalculate everything with new units
-    recalculateWithUnits();
+    recalculateWithUnits(previousIsMph);
 }
 
 function switchToKmh() {
+    const previousIsMph = isMph;
     isMph = false;
     kmhBtn.classList.add('active');
     mphBtn.classList.remove('active');
@@ -570,23 +572,30 @@ function switchToKmh() {
     mphBtn.setAttribute('aria-pressed', 'false');
     
     // Recalculate everything with new units
-    recalculateWithUnits();
+    recalculateWithUnits(previousIsMph);
 }
 
-function recalculateWithUnits() {
-    // Recalculate speed history
+function recalculateWithUnits(previousIsMph) {
+    if (previousIsMph === isMph) {
+        updateSpeedDisplay();
+        updateMetrics();
+        updateChart();
+        return;
+    }
+    
+    // Recalculate speed history from previous unit -> m/s -> new unit
     speedHistory = speedHistory.map(speed => {
-        const mps = isMph ? speed / MPH_CONVERSION_FACTOR : speed / KPH_CONVERSION_FACTOR;
+        const mps = previousIsMph ? speed / MPH_CONVERSION_FACTOR : speed / KPH_CONVERSION_FACTOR;
         return isMph ? mps * MPH_CONVERSION_FACTOR : mps * KPH_CONVERSION_FACTOR;
     });
     
     // Recalculate max speed
-    const mpsMax = isMph ? maxSpeed / KPH_CONVERSION_FACTOR : maxSpeed / MPH_CONVERSION_FACTOR;
+    const mpsMax = previousIsMph ? maxSpeed / MPH_CONVERSION_FACTOR : maxSpeed / KPH_CONVERSION_FACTOR;
     maxSpeed = isMph ? mpsMax * MPH_CONVERSION_FACTOR : mpsMax * KPH_CONVERSION_FACTOR;
     
     // Recalculate speed readings
     speedReadings = speedReadings.map(speed => {
-        const mps = isMph ? speed / KPH_CONVERSION_FACTOR : speed / MPH_CONVERSION_FACTOR;
+        const mps = previousIsMph ? speed / MPH_CONVERSION_FACTOR : speed / KPH_CONVERSION_FACTOR;
         return isMph ? mps * MPH_CONVERSION_FACTOR : mps * KPH_CONVERSION_FACTOR;
     });
     
