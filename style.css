@@ -1,125 +1,275 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+:root {
+    --bg-color: #ffffff;
+    --text-primary: #000000;
+    --text-secondary: #666666;
+    --border-color: #000000;
+    --accent-active: #000000;
+    --accent-inactive: #ffffff;
+
+    --font-ui: 'Inter', sans-serif;
+    --font-mono: 'Roboto Mono', monospace;
+
+    --border-width: 1px;
+    --radius: 0px;
+    /* Sharp corners for brutalist/minimal look */
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #000000;
+        --text-primary: #ffffff;
+        --text-secondary: #aaaaaa;
+        --border-color: #ffffff;
+        --accent-active: #ffffff;
+        --accent-inactive: #000000;
+    }
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
 body {
-    background-color: #f4f7f6; /* Lighter background */
-    color: #333; /* Darker text for contrast */
-    font-family: 'Roboto', sans-serif; /* Modern font */
-    min-height: 100vh; /* Use min-height for flexibility */
-    margin: 0;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+}
+
+.app-container {
+    width: 100%;
+    max-width: 600px;
+    /* Keep it tight */
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 40px;
+}
+
+/* --- Header --- */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px;
+    border-bottom: var(--border-width) solid var(--border-color);
+    padding-bottom: 20px;
+}
+
+.logo {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 1.2rem;
+    letter-spacing: -0.5px;
+    text-transform: uppercase;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    background-color: transparent;
+    border: 1px solid var(--text-primary);
+    border-radius: 50%;
+}
+
+.status-indicator.active .status-dot {
+    background-color: var(--text-primary);
+}
+
+.btn-debug {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--text-secondary);
+    padding: 4px 8px;
+    margin-left: 15px;
+    /* specific spacing */
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+
+.btn-debug:hover {
+    color: var(--text-primary);
+    border-color: var(--text-primary);
+}
+
+.btn-debug.active {
+    background: var(--text-primary);
+    color: var(--bg-color);
+    border-color: var(--text-primary);
+}
+
+/* --- Dashboard Main --- */
+.dashboard {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+/* Speed Section */
+.speed-section {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center; /* Center content vertically */
-    padding: 20px; /* Add some padding */
-    box-sizing: border-box; /* Include padding in width/height calculations */
+    justify-content: center;
+    padding: 20px 0;
 }
 
-h1 {
-    color: #2c3e50; /* Dark blue for heading */
-    margin-bottom: 40px; /* Space below heading */
-    font-size: 2.5em; /* Responsive font size */
-}
-
-#content {
+.speed-ring {
+    /* Removed the ring visual, keeping structure */
     display: flex;
     flex-direction: column;
+    align-items: center;
+}
+
+.speed-value {
+    font-family: var(--font-mono);
+    font-size: 8rem;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -4px;
+}
+
+.speed-unit {
+    font-size: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-top: 10px;
+}
+
+/* Graph Section */
+.graph-section {
+    border: var(--border-width) solid var(--border-color);
+    padding: 10px;
+    height: 150px;
+}
+
+canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    /* 4 cols across for clean look */
+    border-top: var(--border-width) solid var(--border-color);
+    border-left: var(--border-width) solid var(--border-color);
+}
+
+.stat-card {
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    border-right: var(--border-width) solid var(--border-color);
+    border-bottom: var(--border-width) solid var(--border-color);
+}
+
+.stat-label {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-family: var(--font-ui);
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 400;
+}
+
+.stat-unit-small {
+    font-size: 0.7rem;
+    margin-left: 2px;
+}
+
+/* --- Controls Footer --- */
+.controls {
+    display: flex;
+    gap: 20px;
+    padding-bottom: 20px;
+}
+
+.btn-primary {
+    flex: 2;
+    background: var(--text-primary);
+    color: var(--bg-color);
+    border: 1px solid var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    padding: 15px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    display: flex;
     justify-content: center;
     align-items: center;
-    width: 100%;
-    max-width: 600px; /* Max width for content area */
-    text-align: center; /* Center text within content */
+    gap: 10px;
 }
 
-#speed { /* Renamed from 'p' to be more specific, assuming this is the ID of the speed display */
-    font-size: 2em; /* Default font size */
-    color: #2c3e50; /* Consistent text color */
-    margin-bottom: 30px; /* Space below speed display */
-    font-weight: 700; /* Bolder speed reading */
+.btn-primary:hover {
+    opacity: 0.8;
 }
 
-#btnContainer {
+.btn-primary:active {
+    transform: translateY(1px);
+}
+
+.toggle-group {
+    flex: 1;
     display: flex;
-    justify-content: center; /* Center buttons */
-    gap: 20px; /* Space between buttons */
-    width: 100%; /* Full width to allow centering */
-    margin-top: 20px; /* Space above button container */
+    border: var(--border-width) solid var(--border-color);
 }
 
-button {
-    background-color: #3498db; /* Primary button color (blue) */
+.btn-toggle {
+    flex: 1;
+    background: transparent;
     border: none;
-    border-radius: 8px; /* Rounded corners */
-    color: #fff;
-    padding: 12px 25px; /* Adjusted padding */
-    text-align: center;
-    text-decoration: none;
-    display: inline-block; /* Ensure it's an inline-block for proper display */
-    font-size: 1em; /* Relative font size */
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 0.8rem;
     cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth transitions */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    transition: all 0.2s;
+    border-right: var(--border-width) solid var(--border-color);
 }
 
-button:hover:not(:disabled) {
-    background-color: #2980b9; /* Darker blue on hover */
-    transform: translateY(-2px); /* Slight lift on hover */
+.btn-toggle:last-child {
+    border-right: none;
 }
 
-button:disabled {
-    background-color: #bdc3c7; /* Lighter grey for disabled */
-    color: #7f8c8d; /* Muted text color for disabled */
-    cursor: not-allowed;
-    box-shadow: none; /* No shadow for disabled buttons */
+.btn-toggle.active {
+    background: var(--text-primary);
+    color: var(--bg-color);
 }
 
-button#startTracking {
-    background-color: #2ecc71; /* Green for start button */
-    /* display is handled by JS, so no need to repeat 'display: inline-block' here if it's always shown initially or JS handles it */
-}
-
-button#startTracking:hover:not(:disabled) {
-    background-color: #27ae60; /* Darker green on hover */
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    h1 {
-        font-size: 2em;
-    }
-
-    #speed {
-        font-size: 1.8em; /* Adjusted for view on smaller screens */
-        /* The font-size: 10vw from JS will override this when location access is granted.
-           This style here is for the initial state or if JS controlled font-size is removed. */
-    }
-
-    button {
-        padding: 10px 20px;
-        font-size: 0.9em;
-    }
-
-    #btnContainer {
-        flex-direction: column; /* Stack buttons vertically on small screens */
-        gap: 15px;
-    }
-}
-
+/* Mobile Adjustments */
 @media (max-width: 480px) {
-    h1 {
-        font-size: 1.8em;
+    .speed-value {
+        font-size: 6rem;
     }
 
-    #speed {
-        font-size: 1.5em; /* Further adjust for very small screens */
-    }
-
-    button {
-        width: 100%; /* Make buttons full width */
-        padding: 12px; /* Adjust padding for full width */
-        font-size: 1em; /* Ensure text is readable */
-    }
-
-    #btnContainer {
-        gap: 10px; /* Reduce gap for stacked buttons */
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }

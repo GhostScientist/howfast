@@ -1,27 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8"> <!-- Added charset for best practice -->
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Online GPS speedometer application that displays your current speed in mph or km/h."> <!-- Slightly more descriptive -->
-    <title>GPS Speedometer</title> <!-- More descriptive title -->
+    <meta name="description" content="Advanced GPS Speedometer with real-time analytics.">
+    <title>Velocity | GPS Dashboard</title>
+
+    <!-- Google Fonts: Inter for UI, Roboto Mono for Data -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <main>
-        <h1>GPS Speedometer</h1>
 
-        <div id="content">
-            <p id="speed" aria-live="polite">Please allow Current Location access to determine speed.</p>
-            <button id="startTracking" type="button">Start Tracking</button> <!-- Added type="button" for clarity -->
-            <div id="btnContainer">
-                <!-- aria-pressed will be managed by JavaScript -->
-                <button id="mphBtn" type="button" aria-pressed="true" disabled>mph</button>
-                <button id="kmhBtn" type="button" aria-pressed="false">km/h</button>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">HOWFAST</div>
+            <div class="status-indicator">
+                <span id="gpsStatus">GPS OFF</span>
+                <span class="status-dot"></span>
             </div>
-        </div>
-    </main>
+            <button id="debugBtn" type="button" class="btn-debug" aria-label="Toggle Debug Mode">DEBUG</button>
+        </header>
+
+        <main class="dashboard">
+            <!-- Primary Speed Display -->
+            <section class="speed-section">
+                <div class="speed-ring">
+                    <div class="speed-value" id="speed">0.0</div>
+                    <div class="speed-unit" id="unitLabel">MPH</div>
+                </div>
+            </section>
+
+            <!-- Real-time Graph -->
+            <section class="graph-section">
+                <canvas id="speedChart"></canvas>
+            </section>
+
+            <!-- Stats Grid -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">MAX SPEED</span>
+                    <span class="stat-value" id="maxSpeed">0.0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">AVG SPEED</span>
+                    <span class="stat-value" id="avgSpeed">0.0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">DISTANCE</span>
+                    <span class="stat-value" id="distance">0.00</span>
+                    <span class="stat-unit-small">mi</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">TIME</span>
+                    <span class="stat-value" id="duration">00:00</span>
+                </div>
+            </section>
+        </main>
+
+        <footer class="controls">
+            <button id="startTracking" type="button" class="btn-primary">
+                <span class="icon">▶</span> START
+            </button>
+            <div class="toggle-group" id="unitToggle">
+                <button id="mphBtn" type="button" class="btn-toggle active" aria-pressed="true">MPH</button>
+                <button id="kmhBtn" type="button" class="btn-toggle" aria-pressed="false">KM/H</button>
+            </div>
+        </footer>
+    </div>
 
     <script src="script.js"></script>
 </body>
+
 </html>

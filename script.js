@@ -1,199 +1,479 @@
 // --- Constants ---
 const MPH_CONVERSION_FACTOR = 2.23694;
 const KPH_CONVERSION_FACTOR = 3.6;
+const MAX_DATA_POINTS = 50; // Points to keep in the graph
 
 // --- State Variables ---
 let isMph = true;
-let currentSpeed = 0; // Stores speed in m/s, as provided by the Geolocation API
-let grantedLocationAccess = false;
-let watchId = null; // To store the ID of the geolocation watch
+let currentSpeed = 0; // m/s
+let maxSpeedVal = 0; // m/s
+let totalDistance = 0; // meters
+let startTime = null;
+let lastPosition = null;
+let watchId = null;
+let wakeLock = null;
+let chart = null;
+
+// Debug State
+let isDebug = false;
+let debugInterval = null;
+
+// Speed history for averaging and graph
+let speedHistory = [];
 
 // --- DOM Elements ---
-// Cache DOM elements that are frequently accessed
-const speedDisplay = document.getElementById('speed');
-const startTrackingBtn = document.getElementById('startTracking');
-const mphBtn = document.getElementById('mphBtn');
-const kmhBtn = document.getElementById('kmhBtn');
+const dom = {
+    speed: document.getElementById('speed'),
+    unitLabel: document.getElementById('unitLabel'),
+    gpsStatus: document.getElementById('gpsStatus'),
+    statusDot: document.querySelector('.status-indicator'),
+    maxSpeed: document.getElementById('maxSpeed'),
+    avgSpeed: document.getElementById('avgSpeed'),
+    distance: document.getElementById('distance'),
+    duration: document.getElementById('duration'),
+    startBtn: document.getElementById('startTracking'),
+    mphBtn: document.getElementById('mphBtn'),
+    kmhBtn: document.getElementById('kmhBtn'),
+    debugBtn: document.getElementById('debugBtn'),
+    chartCanvas: document.getElementById('speedChart')
+};
 
-// --- Functions ---
-
-/**
- * Processes the new geographic position provided by the Geolocation API.
- * @param {GeolocationPosition} position - The position object.
- */
-function processNewPosition(position) {
-    if (!grantedLocationAccess) {
-        grantedLocationAccess = true;
-        // Show unit buttons and hide the start button
-        mphBtn.style.display = 'inline-block';
-        kmhBtn.style.display = 'inline-block';
-        startTrackingBtn.style.display = 'none';
-    }
-    // position.coords.speed is in meters per second.
-    currentSpeed = position.coords.speed || 0; // Default to 0 if speed is null
-    updateSpeedDisplay();
+// --- Initialization ---
+function init() {
+    initChart();
+    setupEventListeners();
 }
 
-/**
- * Updates the displayed speed, converting it to the selected unit (mph or km/h).
- */
-function updateSpeedDisplay() {
-    if (!speedDisplay) return; // Guard clause if element not found
+function setupEventListeners() {
+    dom.startBtn.addEventListener('click', toggleTracking);
+    dom.mphBtn.addEventListener('click', () => setUnit(true));
+    dom.kmhBtn.addEventListener('click', () => setUnit(false));
+    dom.debugBtn.addEventListener('click', toggleDebug);
+}
 
-    let convertedSpeed;
-    let unit;
+// ... (Chart functions remain the same) ...
 
-    if (isMph) {
-        convertedSpeed = currentSpeed * MPH_CONVERSION_FACTOR;
-        unit = 'mph';
+// --- Debug Logic ---
+function toggleDebug() {
+    isDebug = !isDebug;
+
+    if (isDebug) {
+        dom.debugBtn.classList.add('active');
+        // Stop real tracking if active
+        if (watchId) stopTracking();
+
+        startDebugSimulation();
     } else {
-        convertedSpeed = currentSpeed * KPH_CONVERSION_FACTOR;
-        unit = 'km/h';
+        dom.debugBtn.classList.remove('active');
+        stopDebugSimulation();
     }
-    speedDisplay.innerText = convertedSpeed.toFixed(2) + ' ' + unit;
 }
 
-/**
- * Switches the speed display and calculation to miles per hour (mph).
- */
-function switchToMph() {
-    isMph = true;
-    if (mphBtn) {
-        mphBtn.disabled = true;
-        mphBtn.setAttribute('aria-pressed', 'true');
-    }
-    if (kmhBtn) {
-        kmhBtn.disabled = false;
-        kmhBtn.setAttribute('aria-pressed', 'false');
-    }
-    updateSpeedDisplay();
+function startDebugSimulation() {
+    // Mimic startTracking UI updates
+    dom.startBtn.classList.add('active');
+    dom.startBtn.innerHTML = '<span class="icon">■</span> STOP (DEBUG)';
+    dom.gpsStatus.innerText = "DEBUG MODE";
+    dom.statusDot.classList.add('active');
+
+    resetSession();
+    startTimer();
+
+    // Simulation loop
+    let simSpeed = 0;
+    debugInterval = setInterval(() => {
+        // Randomly accelerate/decelerate
+        const delta = (Math.random() - 0.5) * 2; // -1 to 1 m/s change
+        simSpeed += delta;
+        if (simSpeed < 0) simSpeed = 0;
+        if (simSpeed > 45) simSpeed = 45; // ~100mph max
+
+        // Mock position object structure
+        const mockPosition = {
+            coords: {
+                speed: simSpeed,
+                latitude: 40.7128 + (totalDistance * 0.000001), // Fake movement for distance calc usually requires lat/lon, 
+                // but simpler to just mock distance directly in debug if we wanted, 
+                // OR actualy update lat/lon to test Haversine.
+                // Let's just mock speed and manually increment distance for debug simplicity.
+                longitude: -74.0060
+            }
+        };
+
+        // Manually handle distance for debug since lat/lon math on tiny random numbers is messy
+        // At 1Hz interval, distance = speed (m/s) * 1s
+        const dist = simSpeed;
+        if (dist > 0.1) totalDistance += dist;
+
+        // Reuse handlePosition variables logic locally or mock it?
+        // Let's reuse standard flow but bypass the distance calc in handlePosition if debugging to avoid Haversine noise
+
+        // Actually, let's just create a pure mock handler to keep it clean
+        handleDebugTick(simSpeed);
+
+    }, 1000); // 1Hz update like standard GPS
 }
 
-/**
- * Switches the speed display and calculation to kilometers per hour (km/h).
- */
-function switchToKmh() {
-    isMph = false;
-    if (kmhBtn) {
-        kmhBtn.disabled = true;
-        kmhBtn.setAttribute('aria-pressed', 'true');
-    }
-    if (mphBtn) {
-        mphBtn.disabled = false;
-        mphBtn.setAttribute('aria-pressed', 'false');
-    }
-    updateSpeedDisplay();
+function stopDebugSimulation() {
+    if (debugInterval) clearInterval(debugInterval);
+    debugInterval = null;
+
+    // Restore UI
+    dom.startBtn.classList.remove('active');
+    dom.startBtn.innerHTML = '<span class="icon">▶</span> START';
+    dom.gpsStatus.innerText = "GPS OFF";
+    dom.statusDot.classList.remove('active');
+
+    stopTimer();
 }
 
-/**
- * Starts tracking the user's location and speed.
- */
-function startTracking() {
-    // Geolocation options: enable high accuracy and ensure fresh data.
-    const geolocationOptions = {
+function handleDebugTick(simSpeed) {
+    currentSpeed = simSpeed;
+
+    // High score
+    if (currentSpeed > maxSpeedVal) maxSpeedVal = currentSpeed;
+
+    // History
+    speedHistory.push(currentSpeed);
+
+    updateDisplay();
+    updateChart(currentSpeed);
+}
+
+// ... (Rest of Geometry & Logic) ...
+
+// --- Logic ---
+function toggleTracking() {
+    // If debug is on, start button just restarts the sim
+    if (isDebug) {
+        // If sim running, stop it
+        if (debugInterval) {
+            toggleDebug(); // Actually just toggle safe mode off? Or just stop?
+            // User said "toggleable debug speed tracking that simulates GPS".
+            // Let's say big button stops debug too.
+            stopDebugSimulation();
+            dom.debugBtn.classList.remove('active');
+            isDebug = false;
+        } else {
+            // Start sim
+            startDebugSimulation();
+        }
+    } else {
+        if (watchId) {
+            stopTracking();
+        } else {
+            startTracking();
+        }
+    }
+}
+// ... (startTracking/stopTracking/etc remain but we need to ensure they don't conflict)
+
+function handlePosition(position) {
+    if (isDebug) return; // Ignore real GPS if debug is on
+
+    const { latitude, longitude, speed } = position.coords;
+
+    // speed is m/s, can be null
+    currentSpeed = speed || 0;
+
+    // Filter noise
+    if (currentSpeed < 0.5) currentSpeed = 0;
+
+    // Update Max Speed
+    if (currentSpeed > maxSpeedVal) maxSpeedVal = currentSpeed;
+
+    // Update Distance
+    if (lastPosition) {
+        const dist = calculateDistance(
+            lastPosition.latitude,
+            lastPosition.longitude,
+            latitude,
+            longitude
+        );
+        if (dist > 5) {
+            totalDistance += dist;
+        }
+    }
+    lastPosition = { latitude, longitude };
+
+    // Update History
+    speedHistory.push(currentSpeed);
+
+    updateDisplay();
+    updateChart(currentSpeed);
+}
+
+// --- Chart.js Setup ---
+function initChart() {
+    const ctx = dom.chartCanvas.getContext('2d');
+
+    // Check color scheme for initial render
+    const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const color = isDark ? '#ffffff' : '#000000';
+
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Array(MAX_DATA_POINTS).fill(''),
+            datasets: [{
+                label: 'Speed',
+                data: Array(MAX_DATA_POINTS).fill(0),
+                borderColor: color,
+                backgroundColor: 'transparent',
+                borderWidth: 1.5, // Thin line
+                pointRadius: 0,
+                fill: false,
+                tension: 0 // Sharp lines for brutalist look, or 0.1 for slight smooth
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            scales: {
+                x: { display: false },
+                y: {
+                    display: false, // Hide y-axis for cleaner look
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false }
+            },
+            layout: {
+                padding: 0
+            }
+        }
+    });
+
+    // Listener for theme change to update chart color
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        const newColor = e.matches ? '#ffffff' : '#000000';
+        chart.data.datasets[0].borderColor = newColor;
+        chart.update();
+    });
+}
+
+// --- Geometry & Math ---
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // Earth radius in meters
+    const phi1 = lat1 * Math.PI / 180;
+    const phi2 = lat2 * Math.PI / 180;
+    const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+    const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+        Math.cos(phi1) * Math.cos(phi2) *
+        Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+}
+
+// --- Logic ---
+function toggleTracking() {
+    if (watchId) {
+        stopTracking();
+    } else {
+        startTracking();
+    }
+}
+
+async function startTracking() {
+    if (!navigator.geolocation) {
+        alert("Geolocation not supported");
+        return;
+    }
+
+    try {
+        // Request Wake Lock
+        if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+        }
+    } catch (err) {
+        console.warn('Wake Lock error:', err);
+    }
+
+    // Reset stats if improved session logic needed, else accumulate
+    // For now, let's reset on new start for clean session
+    resetSession();
+
+    const options = {
         enableHighAccuracy: true,
-        maximumAge: 0, // Don't use a cached position.
-        timeout: 10000 // Time (in milliseconds) until the error callback is invoked.
+        maximumAge: 0,
+        timeout: 5000
     };
 
-    if (navigator.geolocation) {
-        // Clear any existing watch
-        if (watchId) {
-            navigator.geolocation.clearWatch(watchId);
-        }
-        // Start watching the user's position.
-        watchId = navigator.geolocation.watchPosition(
-            processNewPosition,
-            handleGeolocationError,
-            geolocationOptions
+    watchId = navigator.geolocation.watchPosition(
+        handlePosition,
+        handleError,
+        options
+    );
+
+    dom.startBtn.classList.add('active');
+    dom.startBtn.innerHTML = '<span class="icon">■</span> STOP';
+    dom.gpsStatus.innerText = "GPS ACTIVE";
+    dom.statusDot.classList.add('active');
+
+    // Start duration timer
+    startTimer();
+}
+
+function stopTracking() {
+    if (watchId) navigator.geolocation.clearWatch(watchId);
+    if (wakeLock) wakeLock.release();
+
+    watchId = null;
+    wakeLock = null;
+
+    dom.startBtn.classList.remove('active');
+    dom.startBtn.innerHTML = '<span class="icon">▶</span> RESUME';
+    dom.gpsStatus.innerText = "GPS PAUSED";
+    dom.statusDot.classList.remove('active');
+
+    stopTimer();
+}
+
+function resetSession() {
+    currentSpeed = 0;
+    maxSpeedVal = 0;
+    totalDistance = 0;
+    speedHistory = [];
+    startTime = Date.now();
+    lastPosition = null;
+    updateDisplay();
+}
+
+let timerInterval;
+function startTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    startTime = Date.now() - (lastDuration || 0); // Resume capability
+    timerInterval = setInterval(() => {
+        const diff = Date.now() - startTime;
+        const totalSecs = Math.floor(diff / 1000);
+        const mins = Math.floor(totalSecs / 60).toString().padStart(2, '0');
+        const secs = (totalSecs % 60).toString().padStart(2, '0');
+        dom.duration.innerText = `${mins}:${secs}`;
+    }, 1000);
+}
+
+let lastDuration = 0;
+function stopTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    lastDuration = Date.now() - startTime;
+}
+
+function handlePosition(position) {
+    const { latitude, longitude, speed } = position.coords;
+
+    // speed is m/s, can be null
+    currentSpeed = speed || 0;
+
+    // Filter noise: ignore very low speeds implies stationary
+    if (currentSpeed < 0.5) currentSpeed = 0;
+
+    // Update Max Speed
+    if (currentSpeed > maxSpeedVal) maxSpeedVal = currentSpeed;
+
+    // Update Distance
+    if (lastPosition) {
+        const dist = calculateDistance(
+            lastPosition.latitude,
+            lastPosition.longitude,
+            latitude,
+            longitude
         );
-        if (startTrackingBtn) {
-             startTrackingBtn.disabled = true; // Disable button after clicking
-             startTrackingBtn.innerText = "Tracking...";
+        // Only add significant movement to avoid accumulated GPS jitter
+        if (dist > 5) {
+            totalDistance += dist;
         }
+    }
+    lastPosition = { latitude, longitude };
+
+    // Update History for Avg
+    speedHistory.push(currentSpeed);
+
+    updateDisplay();
+    updateChart(currentSpeed);
+}
+
+function handleError(err) {
+    console.warn('GPS Error:', err);
+    dom.gpsStatus.innerText = "GPS ERROR";
+}
+
+function updateDisplay() {
+    const factor = isMph ? MPH_CONVERSION_FACTOR : KPH_CONVERSION_FACTOR;
+    const unit = isMph ? 'MPH' : 'KM/H';
+    const distUnit = isMph ? 'mi' : 'km';
+    const distFactor = isMph ? 0.000621371 : 0.001; // meters to mi/km
+
+    // Main Speed
+    dom.speed.innerText = (currentSpeed * factor).toFixed(1);
+    dom.unitLabel.innerText = unit;
+
+    // Max Speed
+    dom.maxSpeed.innerText = (maxSpeedVal * factor).toFixed(1);
+
+    // Avg Speed
+    const avg = speedHistory.length > 0
+        ? (speedHistory.reduce((a, b) => a + b, 0) / speedHistory.length)
+        : 0;
+    dom.avgSpeed.innerText = (avg * factor).toFixed(1);
+
+    // Distance
+    dom.distance.innerText = (totalDistance * distFactor).toFixed(2);
+    dom.distance.nextElementSibling.innerText = distUnit;
+}
+
+function updateChart(speedMs) {
+    if (!chart) return;
+
+    const factor = isMph ? MPH_CONVERSION_FACTOR : KPH_CONVERSION_FACTOR;
+    const val = speedMs * factor;
+
+    // Remove oldest, add newest
+    const data = chart.data.datasets[0].data;
+    data.shift();
+    data.push(val);
+
+    chart.update();
+}
+
+function setUnit(mph) {
+    isMph = mph;
+
+    if (isMph) {
+        dom.mphBtn.classList.add('active');
+        dom.mphBtn.setAttribute('aria-pressed', 'true');
+        dom.kmhBtn.classList.remove('active');
+        dom.kmhBtn.setAttribute('aria-pressed', 'false');
     } else {
-        if (speedDisplay) {
-            speedDisplay.innerText = "Geolocation is not supported by this browser.";
-        }
-        if (startTrackingBtn) {
-            startTrackingBtn.disabled = true; // Also disable if geolocation is not supported
-        }
+        dom.kmhBtn.classList.add('active');
+        dom.kmhBtn.setAttribute('aria-pressed', 'true');
+        dom.mphBtn.classList.remove('active');
+        dom.mphBtn.setAttribute('aria-pressed', 'false');
     }
+
+    updateDisplay();
+
+    // Clean chart transition (optional, could just let it slide out)
+    // For now we just let the values scale naturally on next update or if we wanted to
+    // re-render the whole history with new unit we would store history in m/s and map it.
+    // The current chart logic pushes new converted values, so old values stay in old unit until scrolled out.
+    // To fix this instantly:
+    const factor = isMph ? MPH_CONVERSION_FACTOR : KPH_CONVERSION_FACTOR;
+    const prevFactor = isMph ? KPH_CONVERSION_FACTOR : MPH_CONVERSION_FACTOR; // Approximate flip
+    // Better: re-map history
+    const data = chart.data.datasets[0].data;
+    // We don't store raw m/s history for the chart specifically in this simple version, 
+    // but we could map the existing data points if we wanted smooth transition.
+    // Simple fix: reset chart or let it slide. 
+    // Let's reset chart data for cleanliness.
+    chart.data.datasets[0].data = Array(MAX_DATA_POINTS).fill(0);
+    chart.update();
 }
 
-/**
- * Handles errors from the Geolocation API.
- * @param {GeolocationPositionError} err - The error object.
- */
-function handleGeolocationError(err) {
-    console.warn(`ERROR(${err.code}): ${err.message}`);
-    if (speedDisplay) {
-        if (err.code === 1) { // PERMISSION_DENIED
-            speedDisplay.innerText = "Location access denied. Please enable it in your browser settings.";
-        } else if (err.code === 2) { // POSITION_UNAVAILABLE
-            speedDisplay.innerText = "Location information is unavailable.";
-        } else if (err.code === 3) { // TIMEOUT
-            speedDisplay.innerText = "The request to get user location timed out.";
-        } else {
-            speedDisplay.innerText = "An unknown error occurred while trying to get your location.";
-        }
-    }
-    // Re-enable start button if tracking fails to start or an error occurs that stops tracking
-    if (startTrackingBtn) {
-        startTrackingBtn.disabled = false;
-        startTrackingBtn.innerText = "Start Tracking";
-    }
-    // If permission was denied, don't try to show unit buttons
-    if (err.code === 1) {
-        grantedLocationAccess = false; // Reset this so user can try again if they enable permissions
-        mphBtn.style.display = 'none';
-        kmhBtn.style.display = 'none';
-        startTrackingBtn.style.display = 'inline-block'; // Show start button again
-    }
-}
-
-// --- Event Listeners ---
-// Ensure the DOM is fully loaded before attaching event listeners.
-document.addEventListener('DOMContentLoaded', () => {
-    // Attach event listeners to buttons
-    if (startTrackingBtn) {
-        startTrackingBtn.addEventListener('click', startTracking);
-    }
-    if (mphBtn) {
-        mphBtn.addEventListener('click', switchToMph);
-    }
-    if (kmhBtn) {
-        kmhBtn.addEventListener('click', switchToKmh);
-    }
-
-    // Initial UI setup
-    // Buttons are hidden by default via CSS (or should be if that's the desired initial state)
-    // and then shown by JS when appropriate.
-    // Here, we ensure mphBtn and kmhBtn are not displayed until location access.
-    if (mphBtn) mphBtn.style.display = 'none';
-    if (kmhBtn) kmhBtn.style.display = 'none';
-    // Set initial state for mph/kmh buttons and ARIA attributes
-    if (mphBtn && kmhBtn) { // Ensure buttons exist
-        if (isMph) {
-            mphBtn.disabled = true;
-            mphBtn.setAttribute('aria-pressed', 'true');
-            kmhBtn.disabled = false;
-            kmhBtn.setAttribute('aria-pressed', 'false');
-        } else {
-            kmhBtn.disabled = true;
-            kmhBtn.setAttribute('aria-pressed', 'true');
-            mphBtn.disabled = false;
-            mphBtn.setAttribute('aria-pressed', 'false');
-        }
-    }
-
-    // Initial message in speed display
-    if (speedDisplay) {
-        speedDisplay.innerText = "Please allow Current Location access to determine speed.";
-    }
-     // Check if geolocation is supported at all and update UI accordingly
-    if (!navigator.geolocation && speedDisplay) {
-        speedDisplay.innerText = "Geolocation is not supported by this browser.";
-        if(startTrackingBtn) startTrackingBtn.disabled = true;
-    }
-});
+// Start
+document.addEventListener('DOMContentLoaded', init);
